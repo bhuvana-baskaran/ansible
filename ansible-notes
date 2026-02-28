@@ -1,0 +1,357 @@
+Ansible
+popular tools before ansible are puppet, chef and salt (solving the problem of writing single script that supports all the OS that helps for configuration management like OS upgrade, app dependency version upgrade, system packages upgrade, etc..)
+problem with puppet and chef are 
+ learning curve is high (complex code of ruby and chef cook books)
+ agent needs to be installed on every vm that it manages
+ 
+Ansible is yaml based, it has playbooks. It is agentless
+two node types: control node (where ansible is installed), manage node(target nodes can be of any OS).
+only requirement is to have python installed on the control and manage nodes. because whatever yaml file you are writing is taken by ansible and it converts the yaml file into python and it executes the python modules on the manage nodes. 
+control node can be any linux machine with python installed or windows machine with WSL distribution enabled
+
+Ansible is not only a configuration management tool. Its a powerful automation platform. 
+Ansible can also do provisioning, deployment & network automation
+
+problem with shell & python scripts
+ same shell script will not work on windows and different variations of linux machines
+ python script has to be written and maintained with latest python version. learning is complex
+
+Use python over ansible when
+ you want to talk to api like create jira ticket, github issue
+ 
+Ansible is open source and redhat provides enterprise version of it.  
+Redhat license - Ansible Enterprise version - ansible automation platform provided by Redhat
+
+Install ansible using python
+python3 -m pip install --user ansible or just pip install ansible
+ansible --version
+
+Have Visual studio IDE with YAML and Ansible extension enabled
+
+Day 2 Ansible Passwordless Authentication
+control node to manage node - access without password
+two ways - password & ssh key setup only for the first time
+
+ssh-copy-id -f "-o IdentityFile path-to-pem-file" ubuntu@public-ip - for ssh key
+ssh ubuntu@public-ip - access using this without key from the next time
+
+sudo vim /etc/ssh/sshd_config - change PasswordAuthentication as yes and save - for password
+sudo systemctl restart ssh
+sudo passwd ubuntu - set password
+ssh-copy-id ubuntu@public-ip
+ssh ubuntu@public-ip - access using this without password from the next time
+
+Ansible Inventory
+How will ansible control node know that what are its manage nodes?
+Inventory file can be written in two ways - inventory.ini & yaml file 
+vim inventory.ini - can be in any location on your control node or can be at /etc/ansible/hosts file
+ubuntu@public-ip
+ubuntu@public-ip
+ex. adhoc command - ansible -i inventory.ini -m ping all - executes ping ansible module on all the manage nodes
+ansible -i inventory.ini -m shell -a "apt install openjdk" all
+ansible -i inventory.ini -m ping ubuntu@public-ip - executes on only one vm
+vim inventory.ini
+[app]
+ubuntu@public-ip
+
+[db]
+ubuntu@public-ip
+ansible -i inventory.ini -m ping db - executes only on lists db servers
+
+Adhoc commands
+In Ansible, two ways of providing instructions
+playbooks in yaml format (complex tasks, reusable, git version control, collab, modules/roles) and adhoc commands (simple tasks)
+ansible -i inventory.ini -m ping all
+-i - inventory file location
+-m - module
+-a - arguments for module
+all - all manage nodes
+
+need to go through ansible adhoc commands document
+
+Day 3: Ansible Playbook
+Its also a YAML file starts with ---
+Its a list or combination of plays starts with - 
+each play has some tasks 
+each play has
+ hosts: all (where to run - on all the hosts)
+ vars:
+ become: true - run as root user - if not provided will run as whatever user you configure ex. ubuntu
+ remote_user: - which user to use to run play
+ tasks:
+   - modules - does the actual work
+   - name: install apache
+       ansible.builtin.apt: - apt module
+		 name: apache2 - name of the package to install
+		 state: present - present means install, absent means uninstall
+   - name: copy files
+       ansible.builtin.copy: - copy module
+		 src: file path in local
+		 dest: remote path
+		 owner: foo
+		 group: foo
+		 mode: '0777'
+ handlers:
+ metadata:
+ defaults:
+ files:
+ templates: 
+		 
+ansible-playbook -i inventory.ini first-playbook.yaml
+
+Day 4: Ansible Roles - modularity
+instead of putting all the vars, tasks, handlers and meta data in one file, we split them as individual files under a folder called as role. 
+ansible-galaxy will simplify creating, managing, deleting and listing of the ansible roles.
+ansible-galaxy role init test - test is the rolename. it creates test folder and all the files in it. 
+it makes the playbook more readable and modular.
+using ansible-galaxy you can create roles and can upload the roles to ansible-galaxy platform or github and can share the roles within your organization
+galaxy.ansible.com - similar to dockerhub - can search for prebuilt roles to use. marketplace for ansible roles
+files: put all the files that is used in the playbook here
+templates: dyname files - where some fields of the file are dynamic
+defaults: default variable values
+handlers: ansible task which you want to execute upon a particular action (like a function defined once and called whereever requried)
+hosts: all 
+ become: true  
+ roles:
+  - httpd (tasks are moved under http role folder tasks/main.yaml)
+  
+Ansible is idempotent - which means if the task is already executed and no changes has to be done, it won't execute it again n again like a shell script for ex. mkdir abc command fails second time
+
+How can I use the ansible roles available in the ansible galaxy?
+setup an account with ansible galaxy using login
+ansible-galaxy role install role-name
+ls ~/.ansible/roles - here you can see the installed roles
+hosts: all 
+ become: true  
+ roles:
+  - role-name
+  
+Day: 5
+ansible-galaxy -h - supports roles and collections
+ansible-galaxy role -h
+ansible-galaxy role
+init - create new role
+remove 
+delete
+list
+search
+import
+setup
+info
+install
+ansible-galaxy role install role-name - install existing role from galaxy.ansible.com
+ls ~/.ansible/roles - roles are installed here 
+in playbook.yaml
+hosts: all 
+ become: true  
+ roles:
+  - role-name
+ansible-playbook -i inventory.ini playbook.yaml
+how to publish our role to galaxy.ansible.com
+first signin to galaxy.ansible.com
+upload your role to github repo
+ansible-galaxy import github-username role-name --token "api token from galaxy ansible com portal"
+
+Day 6:
+for configuration management tasks, ansible installs modules on the manage nodes and module is executed as python is installed on the manage nodes.
+diff use case: using ansible to create aws/azure/gcp resources or any network appliances like cisco
+in this case ansible has to talk to api's
+here ansible installs the aws/azure/gcp modules on the control node and when this module is executed it will talk to the api. because eod ansible module is a python code which ansible executes. so ansible runs the python code on the control node and this python code talk to the api's of aws/azure/gcp/cisco
+
+its called collections
+
+as a user, we will write the same yaml file. how ansible executes the module is different here.
+what are the collections are supported can be seen from ansible doc. 
+ansible has builtin modules. apart from that if you want to talk to any 3rd modules like google, aws or azure, ansible has concept called collections. its a combination of roles, modules anything related to the 3rd party tool.  
+inside the collection of aws for ex. you see different modules for different resources like ec2, s3, iam.
+we have to install the collection before using them 
+ansible-galaxy collection install amazon.aws
+some collections might have pre requisites like aws collections require python boto3 module 
+pip install boto3 - module ansible uses to talk to aws apis
+
+--- 
+- hosts: localhost -- host is localhost only because it will be executed on control node. 
+  connection: local - this tells that the playbook should be executed on the same machine
+  tasks:
+  - name: start an instance with a public IP address
+    amazon.aws.ec2_instance:
+      name: "ansible-instance"
+      # key_name: "prod-ssh-key"
+      # vpc_subnet_id: subnet-013744e41e8088axx
+      instance_type: t2.micro
+      security_group: default
+      region: us-east-1
+      aws_access_key: "{{ec2_access_key}}"  # From vault as defined
+      aws_secret_key: "{{ec2_secret_key}}"  # From vault as defined      
+      network:
+        assign_public_ip: true
+      image_id: ami-04b70fa74e45c3917
+      tags:
+        Environment: Testing
+		
+we can write this file or create role and move this to tasks folder. 
+
+ansible has built in vault integration which is called ansible vault to store the secrets
+to setup vault
+1. create password for vault 
+openssl rand -base64 2048 > vault.pass - here password is base64 encoded. in real world we would be using encryption mechanisms like sha1 sha256
+2.
+ansible-vault create group_vars/all/pass.yml --vault-password-file vault.pass - creating file pass.yaml and secure this with password - add access & secret key here as key value pairs. creating pass.yaml and protecting the data in the file using the base64 encoded vault.pass file. 
+ansible-vault decrypt pass.yaml --vault-password-file vault.pass - to decrypt the pass.yaml file back to normal
+ansible-vault edit group_vars/all/pass.yml --vault-password-file vault.pass - add new value
+ansible-vault view group_vars/all/pass.yml --vault-password-file vault.pass - just view
+ansible-vault encrypt group_vars/all/pass.yml --vault-password-file vault.pass - encrypting the existing file
+we need to secure vault.pass file to secure storage like aws secret manager / system parameter store
+
+use this in tasks args like
+- name: task name
+  amazon.aws.ec2_instances: -- using ec2 module from aws collection amazon namespace
+	name:
+	image_id:
+	aws_access_key: {{ec2_access_key}}
+	aws_secret_key: {{ec2_secret_key}}
+	
+3. run the playbook
+ansible-playbook -i inventory.ini playbook.yaml --vault-password-file vault.pass
+
+
+
+ansible infra provision and network automation - collections
+
+you have to use aws collection to create aws resources. to create ec2 you have to use ec2 module. here we will use connection type as local and we will run the module on ansible control node itself. this is the python module which uses boto3 to connect to the aws api to provision ec2. 
+
+variables - can be declared in multiple (22) places
+
+role defaults - in the role structure under defaults main.yaml
+used in task as "{{ varname }}"
+role vars - in the role structure under vars main.yaml - has high priority than the above
+ansible-playbook... -e type=t2.micro - extra vars - has high priority than the role vars
+in tasks under name
+- name: task name
+  vars:
+	type: t2.micro
+group_vars
+app.yaml vars - applied only to app manage nodes
+db.yaml vars - applied only to db manage nodes
+
+Loop to create multiple ec2
+- name: task name
+  amazon.aws.ec2_instances: -- using ec2 module from aws collection amazon namespace
+	name: "{{ item.name }}"
+	image_id: "{{ item.image }}"
+	aws_access_key: {{ec2_access_key}}
+	aws_secret_key: {{ec2_secret_key}}
+	tag:
+	  environment: "{{ item.name }}"
+  loop:
+	- { image: "ami-id-1", name: "name1" }
+	- { image: "ami-id-2", name: "name2" }
+	
+when condition based on gather facts
+tasks:
+ - name: print all the gathered ansible_facts
+   ansible.builtin.debug:
+	  var: ansible_facts -- ansible_facts built it variable
+ - name: stop ubuntu instances only
+      ansible.builtin.command: /sbin/shutdown -t now
+      when:
+       ansible_facts['os_family'] == "Debian"
+
+Error Handling
+
+If you have 2 tasks in playbook, the first task has to be complete and successful. then only it can do the second task. otherwise it won't run the second task
+
+ignore_errors: yes in the end of the task 1 to proceed with next tasks even if task 1 fails
+register: output - here output is a variable. register is used to store the output of ansible task that was executed
+ - name: stop ubuntu instances only
+      ansible.builtin.command: docker --version
+      register: output
+ - name: print the output
+   ansible.builtin.debug:
+	  var: output
+ - name: install docker if its not there already
+   ansible.builtin.apt:
+	  name: docker.io
+	  state: present
+   when:
+	  output.failed - install docker only when the output of previous task is failed
+
+ignore_errors will ignore all the errors
+failed_when will ignore only specific errors. from the task output we can get the error and filter it out it can be ignored
+
+- name: stop ubuntu instances only
+      ansible.builtin.command: ls /root
+      register: output
+	  failed_when: "'FAILED' in output.stderr"
+	  
+	  
+============================
+What are Ansible facts and how are they collected?
+Ansible facts are pieces of information automatically discovered about the managed (target) hosts. They include details like operating system family and version, IP addresses, CPU count, total memory, mounted filesystems, network interfaces, virtualization type, and much more
+
+ansible adhoc commands
+basic 
+ansible all -m ping -vvv - verbosity. useful for debugging
+ansible localhost -m command -a "ansible --version" - localhost is the controlnode itself
+
+gather facts
+ansible all -m setup - returns ansible_facts gather facts output
+ansible localhost -m setup -a "filter=ansible_all_ipv4_addresses" - only returns one field from ansible_facts
+
+file operations
+ansible node1 -m file -a "path=/etc/os-release" - check if file exists
+ansible node1 -m file -a "path=/var/log/test.txt mode=0755 state=touch" -b - creates empty file. -b means use root privileges
+state=touch for empty file, state=directory for folder
+ansible node1 -m copy -a "src=/etc/hosts dest=/tmp/myhosts.txt owner=azureuser mode=0755"
+
+Package management
+ansible node1 -m apt -a "name=apache2 state=present" -b - installs the package
+
+ansible all -m apt -a "name={{ item }} state=present" -b --loop "nginx vim tree" -- installs multiple packages
+
+package states
+present - install or create
+absent - uninstall or delete
+latest - upgrade + install
+
+file states -- ansible.builtin.file
+touch - creates empty file
+directory - creates directory
+link - creates symlink
+hard - creates hardlink
+
+service / systemd module states -- ansible.builtin.service - it doesn't install if not found
+started - ensure service is running
+stopped
+restarted
+reloaded - reload config without full restart
+
+user module - ansible.builtin.user
+present - create user
+absent - delete user
+
+cron module - ansible.builtin.cron
+present - create cron
+absent - delete cron
+
+ansible all -m command -a "uptime" -- simple command
+
+ansible all -m shell -a "df -h | grep '/dev/sda'" -- shell commands
+
+ansible target-vm -m command -a "touch /tmp/ansible-was-here" -b \
+  -a "creates=/tmp/ansible-was-here" - Run command only if condition met
+  
+ansible all -m find -a "paths=/var size=100m recurse=yes" -b -- find large files (>100MB) in /var
+
+ansible all -m reboot -b -a "reboot_timeout=300 connect_timeout=60" --forks 5 - Reboot and wait for come back
+
+Ansible is parallel by design — it doesn't process one host after another sequentially.
+--forks N (or forks = N in ansible.cfg) sets the maximum number of parallel processes (forks) Ansible will use.
+
+ansible all -m ping -l node2 - Limit to one host with -l
+
+update_cache: yes in the ansible.builtin.apt module is essentially equivalent to running apt-get update (or apt update) on the target machine
+
+changed_when: false in Ansible is a way to tell Ansible that this task should NEVER be marked as "changed", even if it actually did something or produced output that would normally count as a change
+
+command / shell modules do NOT have built-in idempotency logic like apt, file, or service have. so everytime when we run the command / shell modules, if it executes successfully but it has changed nothing just printed the message, that case also it will show as changed. we have to use changed_when here to avoid being showing as changed everytime

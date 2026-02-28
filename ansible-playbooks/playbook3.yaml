@@ -1,0 +1,23 @@
+---
+- hosts: localhost
+  gather_facts: false
+  tasks:
+  - name: check vm's are reachable
+    ansible.builtin.command: telnet {{ item }} 80
+    register: output
+    #loop:
+    #  - 172.16.0.5
+    #  - 172.16.0.6
+    #  - 172.16.0.7
+    loop: 
+      "{{ groups['nodes'] }}"
+    changed_when: false
+    ignore_errors: yes
+  - name: output
+    ansible.builtin.debug:
+      msg: "Host {{ item.item }} → Output: {{ item.stdout_lines | default(['no output']) }}"
+    loop: "{{ output.results }}" # this is printing all the output of output.results
+    ignore_errors: yes
+    loop_control:
+      label: "{{ item.item }}" # so adding this to only to print host ip instead of whole msg. set_fact module is also used to minimize and print the output
+

@@ -1,0 +1,44 @@
+- hosts: all
+  tasks:
+  - name: verify nginx status
+    ansible.builtin.command: "service nginx status"
+    register: nginx_active
+    changed_when: false
+  - name: print status
+    ansible.builtin.debug:
+      msg: "nginx is {{ 'NOT RUNNING' if nginx_active.failed else 'running' }}"
+  - name: check file permission
+    ansible.builtin.stat:
+      path: /usr/share/nginx/html
+    register: file_status
+  - name: print file permission
+    ansible.builtin.debug:
+      msg: > 
+        owner: {{ file_status.stat.pw_name }}
+        group: {{ file_status.stat.gr_name }}
+        mode: {{ file_status.stat.mode }}
+  - name: change folder permission
+    ansible.builtin.file:
+      path: /usr/share/nginx
+      owner: azureuser
+      group: azureuser
+      mode: 0755
+      recurse: yes
+    become: yes
+    when: >
+      file_status.stat.exists and file_status.stat.gr_name != 'azureuser' and file_status.stat.pw_name != 'azureuser'
+  - name: copy files
+    ansible.builtin.copy:
+      src: index.html
+      dest: /usr/share/nginx/html/index.html
+      owner: azureuser
+      mode: 0755
+  - name: check site is enabled with command module
+    ansible.builtin.command: curl -s -o /dev/null -w "%{http_code}" http://localhost
+    changed_when: false
+  - name: check site is enabled with uri module
+    ansible.builtin.uri:
+      url: http://localhost
+      status_code: 200
+    register: site_response
+    failed_when: site_response.status != 200

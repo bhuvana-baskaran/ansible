@@ -1,0 +1,21 @@
+---
+- hosts: all
+  tasks:
+  - name: check nginx is already installed
+    ansible.builtin.command: "service nginx status"
+    register: nginx_status
+    ignore_errors: yes
+    changed_when: false
+  - name: print the status
+    ansible.builtin.debug:
+      var: nginx_status
+  - name: install nginx if not already
+    ansible.builtin.apt:
+      name: nginx
+      state: present
+      update_cache: yes
+    become: yes
+    when: nginx_status.failed
+  - name: check ngins service is up
+    ansible.builtin.service:
+      name: nginx

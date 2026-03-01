@@ -1,0 +1,24 @@
+---
+# tasks file for common-webserver
+# tasks/main.yml
+- name: Include OS-specific variables
+  ansible.builtin.include_vars: "{{ ansible_os_family | lower }}.yml"
+  tags: always
+
+- name: Install nginx
+  ansible.builtin.include_tasks: install.yml
+
+- name: Configure nginx
+  ansible.builtin.include_tasks: config.yml
+
+- name: Validate configuration
+  ansible.builtin.include_tasks: validate.yml
+  when: nginx_validate_config | default(true)
+
+- name: Ensure nginx is {{ nginx_state }}
+  ansible.builtin.service:
+    name: "{{ nginx_service_name | default('nginx') }}"
+    state: "{{ nginx_state }}"
+    enabled: "{{ nginx_enabled }}"
+  become: true
+  notify: Restart nginx

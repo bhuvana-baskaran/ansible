@@ -1,0 +1,10 @@
+# test-role.yml
+- hosts: all
+  become: yes
+
+  roles:
+    - role: common-webserver
+      vars:
+        nginx_port: 8080
+        nginx_custom_error_page: true
+        nginx_remove_default_site: true

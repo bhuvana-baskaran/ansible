@@ -1,0 +1,7 @@
+---
+# vars file for common-webserver
+# vars/main.yml
+nginx_package_name: nginx
+nginx_config_dir: /etc/nginx
+nginx_sites_enabled: "{{ nginx_config_dir }}/sites-enabled"
+nginx_default_site: /etc/nginx/sites-available/default

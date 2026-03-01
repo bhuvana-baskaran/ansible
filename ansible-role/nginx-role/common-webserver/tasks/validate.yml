@@ -1,0 +1,17 @@
+# tasks/validate.yml
+---
+- name: Test nginx configuration syntax
+  ansible.builtin.command: nginx -t
+  changed_when: false
+  register: nginx_test
+  become: true
+
+- name: Fail if nginx config test did NOT say "syntax is ok"
+  ansible.builtin.fail:
+    msg: "nginx configuration test failed!\n{{ nginx_test.stderr }}"
+  when: "'syntax is ok' not in nginx_test.stderr"   # ← note: check stderr, not stdout
+
+- name: Show nginx validation result (success)
+  ansible.builtin.debug:
+    msg: "nginx config is valid ✓ (syntax is ok)"
+  when: "'syntax is ok' in nginx_test.stderr"

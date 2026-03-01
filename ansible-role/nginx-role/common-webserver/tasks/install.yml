@@ -1,0 +1,13 @@
+# tasks/install.yml
+- name: Update apt cache (Debian/Ubuntu)
+  ansible.builtin.apt:
+    update_cache: yes
+    cache_valid_time: 3600
+  when: ansible_os_family == "Debian"
+  become: true
+
+- name: Install nginx package
+  ansible.builtin.package:
+    name: "{{ nginx_package_name }}"
+    state: present
+  become: true

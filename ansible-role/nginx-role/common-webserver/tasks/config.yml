@@ -1,0 +1,25 @@
+# tasks/config.yml
+- name: Create custom error page
+  ansible.builtin.copy:
+    src: custom_404.html
+    dest: /usr/share/nginx/html/404.html
+    mode: '0644'
+  become: true
+  when: nginx_custom_error_page
+
+- name: Deploy main nginx config
+  ansible.builtin.template:
+    src: nginx.conf.j2
+    dest: "{{ nginx_config_dir }}/nginx.conf"
+    mode: '0644'
+    validate: nginx -t -c %s
+  become: true
+  notify: Restart nginx
+
+- name: Remove default site if custom config is used
+  ansible.builtin.file:
+    path: "{{ nginx_default_site }}"
+    state: absent
+  become: true
+  when: nginx_remove_default_site | default(false)
+  notify: Restart nginx

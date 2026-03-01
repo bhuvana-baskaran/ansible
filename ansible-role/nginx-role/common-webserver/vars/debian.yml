@@ -1,0 +1,5 @@
+# roles/common-webserver/vars/debian.yml
+nginx_service_name: nginx
+nginx_package_name: nginx
+nginx_config_dir: /etc/nginx
+nginx_user: www-data

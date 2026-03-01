@@ -1,0 +1,11 @@
+---
+# defaults file for common-webserver
+# defaults/main.yml
+nginx_port: 80
+nginx_user: www-data
+nginx_worker_processes: auto
+nginx_server_name: "{{ inventory_hostname }}"
+nginx_custom_error_page: true
+nginx_install_recommends: false
+nginx_state: started
+nginx_enabled: true

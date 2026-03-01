@@ -1,0 +1,28 @@
+# templates/nginx.conf.j2
+user {{ nginx_user }};
+worker_processes {{ nginx_worker_processes }};
+
+events {
+    worker_connections 1024;
+}
+
+http {
+    include /etc/nginx/mime.types;
+    default_type application/octet-stream;
+
+    server {
+        listen {{ nginx_port }};
+        server_name {{ nginx_server_name }};
+
+        root /usr/share/nginx/html;
+        index index.html;
+
+        {% if nginx_custom_error_page %}
+        error_page 404 /404.html;
+        {% endif %}
+
+        location / {
+            try_files $uri $uri/ =404;
+        }
+    }
+}
